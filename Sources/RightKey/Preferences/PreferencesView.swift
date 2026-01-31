@@ -5,6 +5,7 @@ struct PreferencesView: View {
     @ObservedObject var settings: AppSettings
     @State private var isRecording = false
     @State private var recordingHint = "Press Record, then type the new shortcut."
+    @State private var keyMonitor: Any?
 
     var body: some View {
         ScrollView {
@@ -12,6 +13,8 @@ struct PreferencesView: View {
                 header
                 hotkeyGroup
                 behaviorGroup
+                runtimeGroup
+                generationGroup
                 modelGroup
                 Spacer()
             }
@@ -118,6 +121,74 @@ struct PreferencesView: View {
         }
     }
 
+    private var runtimeGroup: some View {
+        preferenceSection(title: "Runtime", subtitle: "Set the llama.cpp binary if it is not auto-detected.", systemImage: "terminal") {
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Llama binary")
+                        .font(.custom("Avenir Next", size: 12))
+                        .foregroundColor(.secondary)
+                    Text(settings.llamaBinaryPath.isEmpty ? "Auto-detect (brew/LLAMA_BIN)" : settings.llamaBinaryPath)
+                        .font(.custom("Avenir Next Demi Bold", size: 12))
+                        .lineLimit(2)
+                }
+                Spacer()
+                Button("Choose") {
+                    chooseLlamaBinary()
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button("Clear") {
+                    settings.llamaBinaryPath = ""
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+    }
+
+    private var generationGroup: some View {
+        preferenceSection(title: "Generation", subtitle: "Tune decoding for Phi-1.5.", systemImage: "dial.high") {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("Max tokens")
+                        .font(.custom("Avenir Next", size: 12))
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Text("\(settings.maxTokens)")
+                        .font(.custom("Avenir Next Demi Bold", size: 12))
+                }
+                Stepper(value: $settings.maxTokens, in: 64...1024, step: 32) {
+                    Text("\(settings.maxTokens) tokens")
+                        .font(.custom("Avenir Next Demi Bold", size: 12))
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("Temperature")
+                        .font(.custom("Avenir Next", size: 12))
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Text(String(format: "%.2f", settings.temperature))
+                        .font(.custom("Avenir Next Demi Bold", size: 12))
+                }
+                Slider(value: $settings.temperature, in: 0.0...1.5, step: 0.05)
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("Top P")
+                        .font(.custom("Avenir Next", size: 12))
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Text(String(format: "%.2f", settings.topP))
+                        .font(.custom("Avenir Next Demi Bold", size: 12))
+                }
+                Slider(value: $settings.topP, in: 0.1...1.0, step: 0.05)
+            }
+        }
+    }
+
     private func preferenceSection<Content: View>(
         title: String,
         subtitle: String,
@@ -168,6 +239,7 @@ struct PreferencesView: View {
     private func startRecording() {
         isRecording = true
         recordingHint = "Press the new shortcut now."
+        startKeyMonitorIfNeeded()
     }
 
     private func stopRecording(resetHint: Bool = true) {
@@ -175,6 +247,7 @@ struct PreferencesView: View {
         if resetHint {
             recordingHint = "Press Record, then type the new shortcut."
         }
+        stopKeyMonitorIfNeeded()
     }
 
     private func handleRecorded(_ event: NSEvent) {
@@ -204,6 +277,33 @@ struct PreferencesView: View {
             return true
         default:
             return false
+        }
+    }
+
+    private func chooseLlamaBinary() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.prompt = "Choose"
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            settings.llamaBinaryPath = url.path
+        }
+    }
+
+    private func startKeyMonitorIfNeeded() {
+        guard keyMonitor == nil else { return }
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            handleRecorded(event)
+            return nil
+        }
+    }
+
+    private func stopKeyMonitorIfNeeded() {
+        if let keyMonitor {
+            NSEvent.removeMonitor(keyMonitor)
+            self.keyMonitor = nil
         }
     }
 }

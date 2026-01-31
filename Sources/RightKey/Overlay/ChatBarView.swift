@@ -238,10 +238,12 @@ struct ChatBarView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Downloading models")
                 .font(.custom("Avenir Next Demi Bold", size: 12))
-            Text("Saving to /Users/mathis.naud/Desktop/DEV/MODELS")
+            Text(viewModel.downloadStatus.isEmpty ? "Saving to /Users/mathis.naud/Desktop/DEV/MODELS" : viewModel.downloadStatus)
                 .font(.custom("Avenir Next", size: 10))
                 .foregroundColor(.secondary)
-            ProgressView()
+            if viewModel.isDownloading {
+                ProgressView()
+            }
             ForEach(viewModel.models) { model in
                 Link("Open \(model.name) page", destination: model.downloadURL)
                     .font(.custom("Avenir Next", size: 10))

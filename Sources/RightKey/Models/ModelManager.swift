@@ -6,6 +6,8 @@ final class ModelManager: ObservableObject {
     @Published private(set) var isLoading = false
 
     private let settings: AppSettings
+    private let llamaRunner = LlamaRunner()
+    private let contextSize = 2048
     private var idleTimer: Timer?
 
     init(settings: AppSettings) {
@@ -14,7 +16,7 @@ final class ModelManager: ObservableObject {
     }
 
     var missingModels: [ModelInfo] {
-        ModelInfo.available.filter { !FileManager.default.fileExists(atPath: $0.localURL.path) }
+        ModelInfo.available.filter { $0.isDownloaded == false }
     }
 
     func selectModel(id: String) {
@@ -28,44 +30,63 @@ final class ModelManager: ObservableObject {
         AsyncStream { continuation in
             Task { @MainActor in
                 do {
-                    try await loadModelIfNeeded()
-                } catch {
-                    continuation.yield("Model unavailable. Please download it in first-run setup.")
-                    continuation.finish()
-                    return
-                }
-
-                let resolvedModelID = activeModelID ?? settings.defaultModelID
-                let modelName = ModelInfo.available.first(where: { $0.id == resolvedModelID })?.name ?? "Unknown"
-                let response = "(Stub) [\(modelName)] Answer placeholder."
-                if settings.streamingEnabled {
-                    let tokens = response.split(separator: " ").map(String.init)
-                    for token in tokens {
-                        continuation.yield(token + " ")
-                        try? await Task.sleep(nanoseconds: 120_000_000)
+                    let model = try await loadModelIfNeeded()
+                    guard let binaryURL = LlamaRuntime.resolveBinaryURL(settings: settings) else {
+                        continuation.yield("Llama runtime not found. \(LlamaRuntime.installHint)")
+                        continuation.finish()
+                        return
                     }
-                } else {
-                    continuation.yield(response)
+
+                    let builtPrompt = PromptBuilder.buildPrompt(input: prompt, context: context)
+                    let config = LlamaRunner.Config(
+                        binaryURL: binaryURL,
+                        modelURL: model.localURL,
+                        maxTokens: settings.maxTokens,
+                        temperature: settings.temperature,
+                        topP: settings.topP,
+                        contextSize: contextSize
+                    )
+                    let shouldStream = settings.streamingEnabled
+                    let stream = llamaRunner.streamResponse(prompt: builtPrompt, config: config)
+                    var fullResponse = ""
+                    for await chunk in stream {
+                        if shouldStream {
+                            continuation.yield(chunk)
+                        } else {
+                            fullResponse.append(chunk)
+                        }
+                    }
+                    if shouldStream == false {
+                        continuation.yield(fullResponse.trimmingCharacters(in: .whitespacesAndNewlines))
+                    }
+                    continuation.finish()
+                    scheduleIdleUnload()
+                } catch {
+                    if let managerError = error as? ModelManagerError {
+                        continuation.yield(message(for: managerError))
+                    } else {
+                        continuation.yield("Model error: \(error.localizedDescription)")
+                    }
+                    continuation.finish()
                 }
-                continuation.finish()
-                scheduleIdleUnload()
             }
         }
     }
 
-    private func loadModelIfNeeded() async throws {
+    private func loadModelIfNeeded() async throws -> ModelInfo {
         let modelID = settings.defaultModelID
-        guard activeModelID != modelID else { return }
         guard let model = ModelInfo.available.first(where: { $0.id == modelID }) else {
             throw ModelManagerError.unknownModel
         }
-        guard FileManager.default.fileExists(atPath: model.localURL.path) else {
+        guard model.isDownloaded else {
             throw ModelManagerError.modelMissing
         }
-        isLoading = true
-        try await Task.sleep(nanoseconds: 200_000_000)
-        activeModelID = modelID
-        isLoading = false
+        if activeModelID != modelID {
+            isLoading = true
+            activeModelID = modelID
+            isLoading = false
+        }
+        return model
     }
 
     private func scheduleIdleUnload() {
@@ -81,6 +102,15 @@ final class ModelManager: ObservableObject {
         idleTimer?.invalidate()
         idleTimer = nil
         activeModelID = nil
+    }
+
+    private func message(for error: ModelManagerError) -> String {
+        switch error {
+        case .modelMissing:
+            return "Model missing. Download it from the chat bar first."
+        case .unknownModel:
+            return "Unknown model selected."
+        }
     }
 }
 

@@ -9,6 +9,8 @@ final class ChatBarViewModel: ObservableObject {
     @Published var selectedModelID: String
     @Published var showDownloader = false
     @Published var downloadError: String?
+    @Published var downloadStatus = ""
+    @Published var isDownloading = false
 
     private let modelManager: ModelManager
     private let settings: AppSettings
@@ -42,6 +44,10 @@ final class ChatBarViewModel: ObservableObject {
     func submit() {
         let trimmed = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.isEmpty == false else { return }
+        if modelManager.missingModels.isEmpty == false {
+            downloadModelsIfNeeded()
+            return
+        }
         responseText = ""
         isSending = true
         let context = ContextCollector.capture()
@@ -58,11 +64,22 @@ final class ChatBarViewModel: ObservableObject {
     func downloadModelsIfNeeded() {
         downloadError = nil
         showDownloader = true
+        isDownloading = true
+        downloadStatus = "Preparing download..."
+        let missingModels = modelManager.missingModels
         Task {
             do {
-                try await downloadManager.downloadMissing(models: modelManager.missingModels)
+                try await downloadManager.downloadMissing(models: missingModels) { [weak self] model, index, total in
+                    Task { @MainActor in
+                        self?.downloadStatus = "Downloading \(model.name) (\(index)/\(total))"
+                    }
+                }
                 showDownloader = modelManager.missingModels.isEmpty == false
+                isDownloading = false
+                downloadStatus = showDownloader ? "Waiting for download..." : "Download complete."
             } catch {
+                isDownloading = false
+                downloadStatus = "Download failed."
                 downloadError = error.localizedDescription
             }
         }

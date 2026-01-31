@@ -17,6 +17,18 @@ final class AppSettings: ObservableObject {
             defaults.set(hotkey.modifiers.rawValue, forKey: Keys.hotkeyModifiers)
         }
     }
+    @Published var llamaBinaryPath: String {
+        didSet { defaults.set(llamaBinaryPath, forKey: Keys.llamaBinaryPath) }
+    }
+    @Published var maxTokens: Int {
+        didSet { defaults.set(maxTokens, forKey: Keys.maxTokens) }
+    }
+    @Published var temperature: Double {
+        didSet { defaults.set(temperature, forKey: Keys.temperature) }
+    }
+    @Published var topP: Double {
+        didSet { defaults.set(topP, forKey: Keys.topP) }
+    }
 
     private let defaults: UserDefaults
 
@@ -37,6 +49,14 @@ final class AppSettings: ObservableObject {
         } else {
             self.hotkey = KeyCombo(keyCode: 49, modifiers: [.option])
         }
+
+        self.llamaBinaryPath = defaults.string(forKey: Keys.llamaBinaryPath) ?? ""
+        let storedMaxTokens = defaults.object(forKey: Keys.maxTokens) as? Int
+        self.maxTokens = storedMaxTokens ?? 256
+        let storedTemperature = defaults.object(forKey: Keys.temperature) as? Double
+        self.temperature = storedTemperature ?? 0.7
+        let storedTopP = defaults.object(forKey: Keys.topP) as? Double
+        self.topP = storedTopP ?? 0.9
     }
 }
 
@@ -46,4 +66,8 @@ private enum Keys {
     static let defaultModelID = "settings.model.default"
     static let hotkeyCode = "settings.hotkey.code"
     static let hotkeyModifiers = "settings.hotkey.modifiers"
+    static let llamaBinaryPath = "settings.llama.binary"
+    static let maxTokens = "settings.generation.maxTokens"
+    static let temperature = "settings.generation.temperature"
+    static let topP = "settings.generation.topP"
 }

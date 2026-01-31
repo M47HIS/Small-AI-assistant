@@ -9,5 +9,9 @@ final class SettingsTests: XCTestCase {
         XCTAssertEqual(settings.streamingEnabled, true)
         XCTAssertEqual(settings.idleTimeoutSeconds, 90)
         XCTAssertEqual(settings.defaultModelID, ModelInfo.phi15.id)
+        XCTAssertEqual(settings.llamaBinaryPath, "")
+        XCTAssertEqual(settings.maxTokens, 256)
+        XCTAssertEqual(settings.temperature, 0.7)
+        XCTAssertEqual(settings.topP, 0.9)
     }
 }
