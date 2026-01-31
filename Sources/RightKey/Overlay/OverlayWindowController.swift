@@ -6,9 +6,9 @@ final class OverlayWindowController {
     private let modelManager: ModelManager
     private let settings: AppSettings
     private let onOpenPreferences: () -> Void
-    private let panelWidth: CGFloat = 520
-    private let minPanelHeight: CGFloat = 64
-    private let maxPanelHeight: CGFloat = 200
+    private let panelWidth: CGFloat = 600
+    private let minPanelHeight: CGFloat = 76
+    private let maxPanelHeight: CGFloat = 260
     private var currentHeight: CGFloat
 
     init(modelManager: ModelManager, settings: AppSettings, onOpenPreferences: @escaping () -> Void) {
@@ -42,9 +42,10 @@ final class OverlayWindowController {
         panel.isMovableByWindowBackground = true
         panel.isReleasedWhenClosed = false
         panel.tabbingMode = .disallowed
-        panel.level = .statusBar
+        panel.level = .floating
+        panel.isFloatingPanel = true
         panel.hidesOnDeactivate = false
-        panel.collectionBehavior = [.fullScreenAuxiliary, .moveToActiveSpace]
+        panel.collectionBehavior = [.fullScreenAuxiliary, .canJoinAllSpaces]
         panel.backgroundColor = .clear
         panel.isOpaque = false
         panel.hasShadow = false

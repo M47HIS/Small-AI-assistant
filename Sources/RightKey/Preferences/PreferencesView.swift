@@ -4,60 +4,55 @@ import SwiftUI
 struct PreferencesView: View {
     @ObservedObject var settings: AppSettings
     @State private var isRecording = false
-    @State private var recordingHint = "Press Record to set a new shortcut."
+    @State private var recordingHint = "Press Record, then type the new shortcut."
 
     var body: some View {
-        ZStack {
-            Color(nsColor: .windowBackgroundColor)
-                .ignoresSafeArea()
-
-            VStack(alignment: .leading, spacing: 16) {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
                 header
-                hotkeyCard
-                settingsCard
-                modelCard
+                hotkeyGroup
+                behaviorGroup
+                modelGroup
                 Spacer()
             }
-            .padding(22)
+            .padding(28)
         }
-        .frame(minWidth: 540, minHeight: 420)
+        .frame(minWidth: 620, minHeight: 520)
+        .background(Color(nsColor: .windowBackgroundColor))
         .onDisappear {
             stopRecording()
         }
     }
 
     private var header: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 12) {
             Image(systemName: "sparkle")
-                .font(.system(size: 18, weight: .semibold))
+                .font(.system(size: 22, weight: .semibold))
                 .foregroundColor(.accentColor)
-            VStack(alignment: .leading, spacing: 2) {
+                .padding(10)
+                .background(Circle().fill(Color(nsColor: .controlBackgroundColor)))
+            VStack(alignment: .leading, spacing: 4) {
                 Text("Preferences")
-                    .font(.custom("Avenir Next Demi Bold", size: 18))
+                    .font(.custom("Avenir Next Demi Bold", size: 22))
                 Text("Hotkeys, streaming, and default model")
-                    .font(.custom("Avenir Next", size: 11))
+                    .font(.custom("Avenir Next", size: 13))
                     .foregroundColor(.secondary)
             }
         }
     }
 
-    private var hotkeyCard: some View {
-        card {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    Text("Hotkey")
-                        .font(.custom("Avenir Next Demi Bold", size: 14))
-                    Spacer()
+    private var hotkeyGroup: some View {
+        preferenceSection(title: "Hotkey", subtitle: "Set the global shortcut to open RightKey.", systemImage: "keyboard") {
+            HStack(alignment: .center, spacing: 16) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Current shortcut")
+                        .font(.custom("Avenir Next", size: 12))
+                        .foregroundColor(.secondary)
                     Text(settings.hotkey.displayString)
-                        .font(.custom("Avenir Next", size: 11))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Capsule().fill(Color(nsColor: .controlBackgroundColor)))
+                        .font(.custom("Avenir Next Demi Bold", size: 14))
                 }
-                Text(recordingHint)
-                    .font(.custom("Avenir Next", size: 11))
-                    .foregroundColor(.secondary)
-                HStack {
+                Spacer()
+                HStack(spacing: 8) {
                     Button {
                         toggleRecording()
                     } label: {
@@ -72,68 +67,83 @@ struct PreferencesView: View {
                         }
                         .buttonStyle(.bordered)
                     }
-                    Spacer()
                 }
-                if isRecording {
-                    KeyCaptureView(onKeyDown: handleRecorded)
-                        .frame(width: 1, height: 1)
-                        .opacity(0.01)
+            }
+
+            Text(recordingHint)
+                .font(.custom("Avenir Next", size: 12))
+                .foregroundColor(.secondary)
+
+            if isRecording {
+                KeyCaptureView(onKeyDown: handleRecorded)
+                    .frame(width: 1, height: 1)
+                    .opacity(0.01)
+            }
+        }
+    }
+
+    private var behaviorGroup: some View {
+        preferenceSection(title: "Behavior", subtitle: "Streaming and idle unloading.", systemImage: "gearshape") {
+            Toggle("Stream tokens", isOn: $settings.streamingEnabled)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Idle unload")
+                    .font(.custom("Avenir Next", size: 12))
+                    .foregroundColor(.secondary)
+                Stepper(value: $settings.idleTimeoutSeconds, in: 30...300, step: 10) {
+                    Text("\(Int(settings.idleTimeoutSeconds)) seconds")
+                        .font(.custom("Avenir Next Demi Bold", size: 12))
                 }
             }
         }
     }
 
-    private var settingsCard: some View {
-        card {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Behavior")
-                    .font(.custom("Avenir Next Demi Bold", size: 14))
-                Toggle("Stream tokens", isOn: $settings.streamingEnabled)
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Idle unload")
-                            .font(.custom("Avenir Next", size: 12))
-                        Text("Unload model after inactivity")
-                            .font(.custom("Avenir Next", size: 10))
-                            .foregroundColor(.secondary)
-                    }
-                    Spacer()
-                    Stepper(value: $settings.idleTimeoutSeconds, in: 30...300, step: 10) {
-                        Text("\(Int(settings.idleTimeoutSeconds))s")
-                            .font(.custom("Avenir Next", size: 11))
-                    }
-                    .frame(width: 120)
+    private var modelGroup: some View {
+        preferenceSection(title: "Models", subtitle: "Choose the default model and storage path.", systemImage: "cube") {
+            Picker("Default model", selection: $settings.defaultModelID) {
+                ForEach(ModelInfo.available) { model in
+                    Text(model.name).tag(model.id)
                 }
+            }
+            .pickerStyle(.menu)
+
+            HStack {
+                Text("Models stored at")
+                    .font(.custom("Avenir Next", size: 12))
+                    .foregroundColor(.secondary)
+                Spacer()
+                Text(ModelStorage.modelsDirectory.path)
+                    .font(.custom("Avenir Next Demi Bold", size: 12))
             }
         }
     }
 
-    private var modelCard: some View {
-        card {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Default model")
-                    .font(.custom("Avenir Next Demi Bold", size: 14))
-                Picker("Default model", selection: $settings.defaultModelID) {
-                    ForEach(ModelInfo.available) { model in
-                        Text(model.name).tag(model.id)
-                    }
-                }
-                .pickerStyle(.menu)
-                HStack {
-                    Text("Models stored at")
-                        .font(.custom("Avenir Next", size: 10))
+    private func preferenceSection<Content: View>(
+        title: String,
+        subtitle: String,
+        systemImage: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.accentColor)
+                    .frame(width: 28, height: 28)
+                    .background(Circle().fill(Color(nsColor: .controlBackgroundColor)))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.custom("Avenir Next Demi Bold", size: 16))
+                    Text(subtitle)
+                        .font(.custom("Avenir Next", size: 12))
                         .foregroundColor(.secondary)
-                    Spacer()
-                    Text(ModelStorage.modelsDirectory.path)
-                        .font(.custom("Avenir Next", size: 10))
-                        .foregroundColor(.secondary)
                 }
+                Spacer()
             }
-        }
-    }
 
-    private func card<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        content()
+            VStack(alignment: .leading, spacing: 12) {
+                content()
+            }
             .padding(16)
             .frame(maxWidth: .infinity)
             .background(
@@ -144,6 +154,7 @@ struct PreferencesView: View {
                             .stroke(Color(nsColor: .separatorColor), lineWidth: 1)
                     )
             )
+        }
     }
 
     private func toggleRecording() {
@@ -162,7 +173,7 @@ struct PreferencesView: View {
     private func stopRecording(resetHint: Bool = true) {
         isRecording = false
         if resetHint {
-            recordingHint = "Press Record to set a new shortcut."
+            recordingHint = "Press Record, then type the new shortcut."
         }
     }
 
@@ -170,6 +181,10 @@ struct PreferencesView: View {
         guard isRecording else { return }
         guard isModifierKeyCode(Int(event.keyCode)) == false else { return }
         let modifiers = event.modifierFlags.intersection([.command, .option, .control, .shift])
+        if modifiers.isEmpty {
+            recordingHint = "Include at least one modifier (Cmd/Option/Ctrl/Shift)."
+            return
+        }
         if event.keyCode == 53 {
             stopRecording()
             recordingHint = "Recording cancelled."
@@ -221,6 +236,14 @@ private final class KeyCaptureNSView: NSView {
 
     override var acceptsFirstResponder: Bool {
         true
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.window?.makeFirstResponder(self)
+        }
     }
 
     override func keyDown(with event: NSEvent) {

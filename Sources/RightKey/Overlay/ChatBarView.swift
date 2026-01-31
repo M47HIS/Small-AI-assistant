@@ -33,14 +33,14 @@ struct ChatBarView: View {
 
     var body: some View {
         ZStack {
-            VStack(spacing: 12) {
+            VStack(spacing: 16) {
                 inputPill
                 if shouldShowResponse {
                     responseArea
                         .transition(.move(edge: .top).combined(with: .opacity))
                 }
             }
-            .padding(14)
+            .padding(18)
         }
         .frame(width: panelWidth)
         .opacity(didAppear ? 1 : 0)
@@ -88,7 +88,7 @@ struct ChatBarView: View {
             orbView
             TextField("Ask RightKey...", text: $viewModel.inputText)
                 .textFieldStyle(.plain)
-                .font(.custom("Avenir Next", size: 14))
+                .font(.custom("Avenir Next", size: 16))
                 .foregroundColor(.primary)
                 .focused($isInputFocused)
                 .onSubmit {
@@ -97,15 +97,25 @@ struct ChatBarView: View {
             actionButton
             settingsMenu
         }
-        .padding(.horizontal, 14)
-        .frame(height: 44)
+        .padding(.horizontal, 18)
+        .frame(height: 52)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(Color.white.opacity(0.4), lineWidth: 1)
-                )
+            ZStack {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(Color.white.opacity(0.35), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [glowBlue.opacity(0.18), glowAmber.opacity(0.08)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .blur(radius: 8)
+                    .opacity(0.4)
+            }
         )
     }
 
@@ -118,7 +128,7 @@ struct ChatBarView: View {
                         center: .center
                     )
                 )
-                .frame(width: 20, height: 20)
+                .frame(width: 24, height: 24)
                 .overlay(Circle().stroke(Color.white.opacity(0.8), lineWidth: 1))
         }
         .scaleEffect(orbPulse ? 1.04 : 0.96)
@@ -142,7 +152,7 @@ struct ChatBarView: View {
             Image(systemName: iconName)
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(.white)
-                .frame(width: 26, height: 26)
+                .frame(width: 30, height: 30)
                 .background(
                     Circle().fill(
                         LinearGradient(
@@ -179,14 +189,14 @@ struct ChatBarView: View {
         } label: {
             HStack(spacing: 4) {
                 Text(selectedModelName)
-                    .font(.custom("Avenir Next", size: 11))
+                    .font(.custom("Avenir Next", size: 13))
                     .foregroundColor(.secondary)
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(.secondary)
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
             .background(Capsule().fill(Color.white.opacity(0.3)))
         }
         .buttonStyle(.plain)
@@ -204,7 +214,7 @@ struct ChatBarView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.bottom, viewModel.isSending ? 8 : 0)
                 }
-                .frame(height: 110)
+                .frame(height: 170)
 
                 if viewModel.isSending {
                     ProgressView()
@@ -212,7 +222,7 @@ struct ChatBarView: View {
                 }
             }
         }
-        .padding(12)
+        .padding(16)
         .frame(maxWidth: .infinity)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
