@@ -3,3 +3,5 @@
 .DS_Store
 *.xcuserstate
 Capture d*cran*.png
+MODELS/
+node_modules/

@@ -143,12 +143,16 @@ struct ModelInfo: Identifiable, Hashable {
 }
 
 enum ModelStorage {
-    static let modelsDirectory: URL = {
+    static var modelsDirectory: URL {
+        if let override = ProcessInfo.processInfo.environment["RIGHTKEY_MODELS_DIR"], override.isEmpty == false {
+            let expanded = (override as NSString).expandingTildeInPath
+            return URL(fileURLWithPath: expanded, isDirectory: true)
+        }
         let fileManager = FileManager.default
         let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
         let base = appSupport ?? fileManager.homeDirectoryForCurrentUser
         return base
             .appendingPathComponent("RightKey", isDirectory: true)
             .appendingPathComponent("Models", isDirectory: true)
-    }()
+    }
 }

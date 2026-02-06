@@ -236,21 +236,31 @@ struct ChatBarView: View {
 
     private var downloadView: some View {
         let modelsPath = ModelStorage.modelsDirectory.path
+        let selectedModel = viewModel.models.first(where: { $0.id == viewModel.selectedModelID })
         return VStack(alignment: .leading, spacing: 8) {
             Text("Model setup")
                 .font(.custom("Avenir Next Demi Bold", size: 12))
             Text(viewModel.downloadStatus.isEmpty ? "Saving to \(modelsPath)" : viewModel.downloadStatus)
                 .font(.custom("Avenir Next", size: 10))
                 .foregroundColor(.secondary)
+            if let selectedModel {
+                Text("Selected model: \(selectedModel.name)")
+                    .font(.custom("Avenir Next", size: 10))
+                    .foregroundColor(.secondary)
+            }
             if viewModel.isDownloading {
                 ProgressView()
             }
-            ForEach(viewModel.models) { model in
-                Link("Open \(model.name) page", destination: model.repoURL)
+            if let selectedModel {
+                Link("Open \(selectedModel.name) page", destination: selectedModel.repoURL)
                     .font(.custom("Avenir Next", size: 10))
             }
             Button("Reveal downloads folder") {
                 NSWorkspace.shared.open(ModelStorage.modelsDirectory)
+            }
+            .font(.custom("Avenir Next", size: 10))
+            Button("Choose model in Preferences") {
+                onOpenPreferences()
             }
             .font(.custom("Avenir Next", size: 10))
             if let error = viewModel.downloadError {

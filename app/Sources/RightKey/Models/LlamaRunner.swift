@@ -2,18 +2,16 @@ import Foundation
 
 enum LlamaRuntime {
     static func resolveBinaryURL(settings: AppSettings) -> URL? {
-        if settings.llamaBinaryPath.isEmpty == false {
-            let url = URL(fileURLWithPath: settings.llamaBinaryPath)
-            if FileManager.default.isExecutableFile(atPath: url.path) {
-                return url
-            }
+        if let url = executableURL(from: settings.llamaBinaryPath) {
+            return url
         }
         return locateBinaryURL()
     }
 
     static func resolveServerURL(settings: AppSettings) -> URL? {
         if settings.llamaBinaryPath.isEmpty == false {
-            let pathURL = URL(fileURLWithPath: settings.llamaBinaryPath)
+            let normalizedPath = expandedPath(settings.llamaBinaryPath)
+            let pathURL = URL(fileURLWithPath: normalizedPath)
             if pathURL.lastPathComponent == "llama-server" {
                 return FileManager.default.isExecutableFile(atPath: pathURL.path) ? pathURL : nil
             }
@@ -29,8 +27,8 @@ enum LlamaRuntime {
         let environment = ProcessInfo.processInfo.environment
         let envKeys = ["LLAMA_BIN", "LLAMA_CPP_BIN"]
         for key in envKeys {
-            if let path = environment[key], FileManager.default.isExecutableFile(atPath: path) {
-                return URL(fileURLWithPath: path)
+            if let url = executableURL(from: environment[key]) {
+                return url
             }
         }
 
@@ -52,8 +50,8 @@ enum LlamaRuntime {
         let environment = ProcessInfo.processInfo.environment
         let envKeys = ["LLAMA_SERVER_BIN", "LLAMA_CPP_SERVER_BIN"]
         for key in envKeys {
-            if let path = environment[key], FileManager.default.isExecutableFile(atPath: path) {
-                return URL(fileURLWithPath: path)
+            if let url = executableURL(from: environment[key]) {
+                return url
             }
         }
 
@@ -69,7 +67,8 @@ enum LlamaRuntime {
 
     static func resolveQuantizeURL(settings: AppSettings) -> URL? {
         if settings.llamaBinaryPath.isEmpty == false {
-            let baseURL = URL(fileURLWithPath: settings.llamaBinaryPath).deletingLastPathComponent()
+            let normalizedPath = expandedPath(settings.llamaBinaryPath)
+            let baseURL = URL(fileURLWithPath: normalizedPath).deletingLastPathComponent()
             let candidate = baseURL.appendingPathComponent("llama-quantize")
             if FileManager.default.isExecutableFile(atPath: candidate.path) {
                 return candidate
@@ -82,8 +81,8 @@ enum LlamaRuntime {
         let environment = ProcessInfo.processInfo.environment
         let envKeys = ["LLAMA_QUANTIZE_BIN", "LLAMA_CPP_QUANTIZE_BIN"]
         for key in envKeys {
-            if let path = environment[key], FileManager.default.isExecutableFile(atPath: path) {
-                return URL(fileURLWithPath: path)
+            if let url = executableURL(from: environment[key]) {
+                return url
             }
         }
 
@@ -101,13 +100,17 @@ enum LlamaRuntime {
         let environment = ProcessInfo.processInfo.environment
         let envKeys = ["LLAMA_CONVERT_PATH", "LLAMA_CPP_CONVERT_PATH"]
         for key in envKeys {
-            if let path = environment[key], FileManager.default.fileExists(atPath: path) {
-                return URL(fileURLWithPath: path)
+            if let path = environment[key] {
+                let expanded = expandedPath(path)
+                if FileManager.default.fileExists(atPath: expanded) {
+                    return URL(fileURLWithPath: expanded)
+                }
             }
         }
 
         if settings.llamaBinaryPath.isEmpty == false {
-            let baseURL = URL(fileURLWithPath: settings.llamaBinaryPath).deletingLastPathComponent()
+            let normalizedPath = expandedPath(settings.llamaBinaryPath)
+            let baseURL = URL(fileURLWithPath: normalizedPath).deletingLastPathComponent()
             let candidate = baseURL.appendingPathComponent("convert_hf_to_gguf.py")
             if FileManager.default.fileExists(atPath: candidate.path) {
                 return candidate
@@ -145,6 +148,19 @@ enum LlamaRuntime {
 
     static var installHint: String {
         "Install llama.cpp with `brew install llama.cpp`, set LLAMA_BIN, or pick the binary in Preferences."
+    }
+
+    private static func executableURL(from rawPath: String?) -> URL? {
+        guard let rawPath else { return nil }
+        let trimmed = rawPath.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.isEmpty == false else { return nil }
+        let expanded = expandedPath(trimmed)
+        guard FileManager.default.isExecutableFile(atPath: expanded) else { return nil }
+        return URL(fileURLWithPath: expanded)
+    }
+
+    private static func expandedPath(_ path: String) -> String {
+        (path as NSString).expandingTildeInPath
     }
 }
 

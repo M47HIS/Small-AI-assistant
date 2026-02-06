@@ -49,4 +49,39 @@ final class LlamaRuntimeTests: XCTestCase {
         let located = LlamaRuntime.resolveServerURL(settings: settings)
         XCTAssertEqual(located?.path, serverURL.path)
     }
+
+    func testLocateBinaryFromEnvExpandsTildePath() throws {
+        let homeDirectory = FileManager.default.homeDirectoryForCurrentUser
+        let tempDir = homeDirectory.appendingPathComponent("tmp")
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        let tempURL = tempDir.appendingPathComponent("rightkey-llama-env-\(UUID().uuidString)")
+        FileManager.default.createFile(atPath: tempURL.path, contents: Data())
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: tempURL.path)
+        let tildePath = "~/" + tempURL.path.dropFirst(homeDirectory.path.count + 1)
+        setenv("LLAMA_BIN", String(tildePath), 1)
+        defer {
+            unsetenv("LLAMA_BIN")
+            try? FileManager.default.removeItem(at: tempURL)
+        }
+
+        let located = LlamaRuntime.locateBinaryURL()
+        XCTAssertEqual(located?.path, tempURL.path)
+    }
+
+    func testResolveBinaryFromSettingsExpandsTildePath() throws {
+        let homeDirectory = FileManager.default.homeDirectoryForCurrentUser
+        let tempDir = homeDirectory.appendingPathComponent("tmp")
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        let tempURL = tempDir.appendingPathComponent("rightkey-llama-settings-\(UUID().uuidString)")
+        FileManager.default.createFile(atPath: tempURL.path, contents: Data())
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: tempURL.path)
+        let defaults = UserDefaults(suiteName: "RightKeyRuntimeTestsTilde")!
+        defaults.removePersistentDomain(forName: "RightKeyRuntimeTestsTilde")
+        let settings = AppSettings(defaults: defaults)
+        settings.llamaBinaryPath = "~/" + tempURL.path.dropFirst(homeDirectory.path.count + 1)
+        defer { try? FileManager.default.removeItem(at: tempURL) }
+
+        let located = LlamaRuntime.resolveBinaryURL(settings: settings)
+        XCTAssertEqual(located?.path, tempURL.path)
+    }
 }
