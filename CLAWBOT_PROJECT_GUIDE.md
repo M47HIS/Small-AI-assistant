@@ -3,14 +3,16 @@
 This file is the operating manual for Clawbot on the **Small AI Assistant / RightKey** project.
 
 ## 1) Mission
-Build and ship a production-ready macOS hotkey assistant with a tiny local LLM.
+Build and ship a production-ready macOS hotkey assistant with dual inference modes.
 
 Primary product requirements:
-- Local-only inference.
-- No cloud inference at any point.
+- First-run mode choice:
+  - `Privacy Mode` (local model inference).
+  - `Cloud Mode` (user-provided provider/API credentials).
+- Users can switch modes at runtime from Preferences.
 - No browser automation features.
 - No deep filesystem indexing/background crawling.
-- Prioritized next capability: real-time on-screen context capture via OCR/vision (processed locally).
+- Prioritized next capability: real-time on-screen context capture via OCR/vision (processed locally), plus context-driven suggestions.
 
 ## 2) Repository Layout
 - `app/` -> canonical desktop app workspace (Swift package).
@@ -66,7 +68,7 @@ When implementing screen-aware context:
 - Add explicit user-controlled capture toggles.
 - Expose visible capture state in UI.
 - Restrict capture to active intent/session (no silent background collection).
-- Feed OCR/vision context into prompt builder in a bounded, auditable way.
+- Feed OCR/vision context into prompt builder in a bounded, auditable way for both local and cloud modes.
 
 ## 8) Definition of Done (Per Change Set)
 A change set is done only if:
@@ -78,7 +80,5 @@ A change set is done only if:
 
 ## 9) Out of Scope Unless Explicitly Requested
 - Website work.
-- Cloud inference integrations.
 - Browser automation features.
 - Background filesystem indexing.
-

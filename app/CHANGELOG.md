@@ -3,9 +3,11 @@
 All notable changes to this project will be documented in this file.
 
 ## [0.1.0] - Unreleased
-- Documentation update: local-only inference is now specified as a permanent product constraint (not MVP-only).
-- Documentation update: browser automation and deep filesystem indexing are out of scope permanently.
-- Documentation update: real-time on-screen OCR/vision context capture is now the next priority track.
+- Documentation update: product now specifies two user-selectable modes (`Privacy Mode` and `Cloud Mode`).
+- Documentation update: users can switch modes at runtime from Preferences.
+- Documentation update: cloud mode uses user-provided provider/API credentials (for example ChatGPT/OpenAI or Gemini).
+- Documentation update: OCR/vision-based screen context and real-time suggestions are prioritized capabilities.
+- Documentation update: browser automation and deep filesystem indexing remain out of scope.
 - Added RightKey SwiftUI menu-bar scaffold and overlay chat bar.
 - Added settings, preferences UI, and hotkey capture.
 - Added model metadata, downloader, and prompt builder stubs.
